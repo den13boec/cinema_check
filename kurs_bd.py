@@ -182,7 +182,6 @@ class main_window(QMainWindow):
                 row = self.curs.fetchone()
         return result_query
 
-    
     # РИСОВАНИЕ 
     def show_places(self):
         self.graph_check=True
@@ -228,6 +227,7 @@ class main_window(QMainWindow):
         reply = QMessageBox.question(self, 'Exit', 'Вы точно хотите выйти?',
 				QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if reply == QMessageBox.Yes:
+            self.curs.close()
             event.accept()
         else:
             event.ignore()
@@ -425,7 +425,7 @@ class main_window(QMainWindow):
             return 0
         else:                
             return 1
-            
+                    
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
     main_w=main_window()
