@@ -28,24 +28,48 @@ print(tickets)
 curs.close()
 #print(tickets)
 #hall=[[0 for i in range(5)] for j in range(4)]
-def get_hall(row, seats_in_row):
+def get_matrix(row, seats_in_row):
     return([[0 for i in range(seats_in_row)] for j in range(row)])
-def taken_places_in_hall(tickets, hall):
+def taken_places(tickets,matrix_places):
     for i in (tickets):
-        hall[i[0]-1][i[1]-1]=1
-
+        matrix_places[i[0]-1][i[1]-1]=1
+def make_enter_small_medium(hall):
+    for i in range((len(hall[0])-1), 0, -1):
+        hall[0][i],hall[1][i]=hall[0][i-1],hall[1][i-1]
 #for i in range(len(hall)):  
 #    print(hall[i])
-    
+def last_row_corners(hall):
+    hall
 type="малый"
 
 def make_matrix(type):
     if type=="малый":
-        hall=get_hall(4,5)
-        taken_places_in_hall(tickets, hall)
-        for i in range((len(hall[0])-1), 0, -1):
-            hall[0][i],hall[1][i]=hall[0][i-1],hall[1][i-1]
+        matrix_places=get_matrix(4,5)
+        taken_places(tickets,matrix_places)
+        for i in range(len(matrix_places)):  
+            print(matrix_places[i])
+        hall=matrix_places
+        # вход в зал в матрице
+        make_enter_small_medium(hall)
         hall[0][0],hall[1][0]=None, None
-        for i in range(len(hall)):  
-            print(hall[i])
+        for i in range(len(matrix_places)):  
+            print(matrix_places[i])
+    elif type=="средний":
+        matrix_places=get_matrix(7,6)
+        taken_places(tickets, matrix_places)
+        hall=matrix_places
+        # вход в зал в матрице
+        make_enter_small_medium(hall)
+        hall[0][0],hall[1][0]=None, None
+    elif type=="большой":
+        matrix_places=get_matrix(9,8)
+        taken_places(tickets, matrix_places)
+        hall=matrix_places
+        # вход в зал в матрице
+        hall[4][4],hall[4][5],hall[4][6],hall[4][7]=None
+            
+    #for i in range(len(hall)):  
+    #    print(hall[i])
+    #for i in range(len(matrix_places)):  
+    #    print(matrix_places[i])
 make_matrix(type)
