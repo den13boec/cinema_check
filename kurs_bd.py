@@ -9,7 +9,7 @@ from PyQt5 import Qt
 # подключение к БД Access
 import pyodbc
 conn = pyodbc.connect(
-    r'Driver={Microsoft Access Driver (*.mdb, *.accdb)};DBQ=C:\Users\den-b\Documents\python\kurs_3\kursach_bd\kursovik.accdb;')
+    r'Driver={Microsoft Access Driver (*.mdb, *.accdb)};DBQ=C:\Users\den-b\Documents\python\kurs_3\kursach_bd_git\cinema_check\kursovik.accdb;')
 
 
 class main_window(QMainWindow):
@@ -144,7 +144,7 @@ class main_window(QMainWindow):
         # запрос на получение фильмов
         result_films = self.do_query(
             "SELECT film.Name_film FROM film;", False, None)
-
+        
         # заполняем выпадающий список фильмов
         self.comboBox_films.addItems(result_films)
 
@@ -161,10 +161,10 @@ class main_window(QMainWindow):
         self.comboBox_hall.activated.connect(self.make_matrix_and_hall)
 
         # кнопка занять место
-        self.take_seat.clicked.connect(self.check_seat)
+        #self.take_seat.clicked.connect(self._take_seat)
 
         # кнопка просмотреть место
-        self.take_look_seat.clicked.connect(self.check_look_seat)
+        self.take_look_seat.clicked.connect(self.look_seat)
 
         # нарисован ли зал
         self.graph_check = False
@@ -189,50 +189,42 @@ class main_window(QMainWindow):
 
     # отрисовка зала
     def show_places(self):
-        self.graph_check = True
-        # создаём новую сцену чтобы сбросить фокус
-        self.my_scene = QGraphicsScene()
-        self.graphicsView.setScene(self.my_scene)
+        self.graph_check=True
+        #создаём новую сцену чтобы сбросить фокус
+        self.my_scene = QGraphicsScene() 
+        self.graphicsView.setScene(self.my_scene)   
         # задаём размер квадратов
-        size = 20
-        # читаем файл мест
-        x = self.read_file()
+        #20        
+        size=25
+        x=self.hall_for_show
         # рисуем рамку зала
         color = Qt.Qt.black
-        size_sq = QtCore.QRectF(QtCore.QPointF(-size, -(size+5)*2),
-                                QtCore.QSizeF((len(x[1])+2)*size, (len(x)+2)*(size+5)))
-        self.my_scene.addRect(size_sq, Qt.QPen(
-            color), Qt.QBrush(Qt.Qt.lightGray))
+        size_sq = QtCore.QRectF(QtCore.QPointF(-size, -(size+5)*2), QtCore.QSizeF((len(x[1])+2)*size, (len(x)+2)*(size+5)))
+        self.my_scene.addRect(size_sq, Qt.QPen(color), Qt.QBrush(Qt.Qt.lightGray))
         # рисуем экран
         color = Qt.Qt.cyan
-        size_sq = QtCore.QRectF(QtCore.QPointF(
-            0, -(size+5)*2), QtCore.QSizeF((len(x[1]))*size, size/2))
+        size_sq = QtCore.QRectF(QtCore.QPointF(0, -(size+5)*2), QtCore.QSizeF((len(x[1]))*size, size/2))
         self.my_scene.addRect(size_sq, Qt.QPen(Qt.Qt.gray), Qt.QBrush(color))
         # подпись для экрана
-        text = self.my_scene.addText(
-            "Экран", font=QtGui.QFont("Times", 8, QtGui.QFont.Bold))
-        text.setPos(((len(x[1]))*(size - 2))/2, -(size+5)*3)
+        text=self.my_scene.addText("Экран", font=QtGui.QFont("Times", 8, QtGui.QFont.Bold))
+        text.setPos( ((len(x[1]))*(size - 2))/2,-(size+5)*3)
         # рисуем места
         for i in range(len(x)):
-            text = self.my_scene.addText(
-                ("Ряд " + str(i+1)), font=QtGui.QFont("Times", 8, QtGui.QFont.Bold))
-            text.setPos((len(x[i])+2)*size, i*(size+5))
-            number_seat = 0
+            text=self.my_scene.addText(("Ряд " + str(i+1)), font=QtGui.QFont("Times", 8, QtGui.QFont.Bold))
+            text.setPos((len(x[i])+2)*size,i*(size+5))
+            number_seat=0
             for j in range(len(x[i])):
-                if x[i][j] == "0":
+                if x[i][j]=="0":
                     color = Qt.Qt.green
-                    number_seat = number_seat+1
-                elif x[i][j] == "1":
+                    number_seat=number_seat+1
+                elif x[i][j]=="1":
                     color = Qt.Qt.red
-                    number_seat = number_seat+1
+                    number_seat=number_seat+1
                 else:
                     continue
-                size_sq = QtCore.QRectF(QtCore.QPointF(
-                    j*size, i*(size+5)), QtCore.QSizeF(size, size))
-                self.my_scene.addRect(
-                    size_sq, Qt.QPen(color), Qt.QBrush(color))
-                text = self.my_scene.addText(
-                    str(number_seat), font=QtGui.QFont("Times", 8, QtGui.QFont.Bold))
+                size_sq = QtCore.QRectF(QtCore.QPointF(j*size, i*(size+5)), QtCore.QSizeF(size, size))
+                self.my_scene.addRect(size_sq, Qt.QPen(color), Qt.QBrush(color))
+                text=self.my_scene.addText(str(number_seat), font=QtGui.QFont("Times", 8, QtGui.QFont.Bold))
                 text.setPos(j*size, i*(size+5))
 
     # событие при выходе
@@ -341,80 +333,109 @@ class main_window(QMainWindow):
         type_hall = self.comboBox_hall.currentText()
         # запрос на получение списка занятых мест в зале на сеанс
         tickets = self.do_query(query, True, (time, film, date, type_hall))
-
-        if type_hall == "малый":
-            self.matrix_places = []
-            self.matrix_places = self.get_matrix(4, 5)
-            self.taken_places(tickets)
-            self.hall = []
-            _places = copy.deepcopy(self.matrix_places)
-            for place in _places:
-                self.hall.append(place)
+        hall = []
+        #self.matrix_places = []
+        if type_hall == "малый":            
+            hall = self.get_matrix(4, 5)
+            self.taken_places(tickets, hall)            
+            # копируем через deepcopy матрицу
+            #hall = copy.deepcopy(self.matrix_places)
             # вход в зал в матрице
-            self.make_enter_small_medium()
-            self.hall[0][0], self.hall[1][0] = None, None
-
-            for i in range(len(self.matrix_places)):
-                print(self.matrix_places[i])
-            for i in range(len(self.hall)):
-                print(self.hall[i])
-
+            self.make_enter_small_medium(hall)
+            hall[0][0], hall[1][0] = 2, 2
+        elif type_hall=="средний":
+            hall = self.get_matrix(7, 6)
+            self.taken_places(tickets, hall)            
+            # копируем через deepcopy матрицу
+            #hall = copy.deepcopy(self.matrix_places)
+            # вход в зал в матрице
+            self.make_enter_small_medium(hall)
+            hall[0][0], hall[1][0] = 2, 2
+            for i in range((len(hall[6])-2), 0, -1):
+                hall[6][i] = hall[6][i-1]
+            hall[6][0], hall[6][5] = 2, 2
+        elif type_hall=="большой":
+            hall = self.get_matrix(9, 8)
+            self.taken_places(tickets, hall)            
+            # копируем через deepcopy матрицу
+            #hall = copy.deepcopy(self.matrix_places)
+            # вход в зал в матрице
+            hall[4][4],hall[4][5],hall[4][6],hall[4][7]=2, 2, 2, 2            
+            for i in range((len(hall[8])-2), 0, -1):
+                hall[8][i] = hall[8][i-1]
+            hall[8][0], hall[8][7] = 2, 2        
+        self.hall_for_show=[]
+        self.matrix_taken_places=[]
+        # создаём матрицу зала, которую будем использовать для рисования:hall_for_show
+        # и матрицу занятых мест, которую будем использовать для проверки занимаемого места:matrix_taken_places
+        for i in hall:
+            line = ' '.join([str(elem) for elem in i])
+            self.hall_for_show.append(line)
+            line=[]
+            for j in i:                
+                if j==0 or j==1:
+                    line.append(j)
+            self.matrix_taken_places.append(line)
+        self.show_places()
+        
     # получение матрицы зала, заполненной 0 определённого размера
     def get_matrix(self, row, seats_in_row):
         return([[0 for i in range(seats_in_row)] for j in range(row)])
 
     # заполнение матрицы занятыми местами
-    def taken_places(self, tickets):
+    def taken_places(self, tickets, hall):
         for i in (tickets):
-            self.matrix_places[i[0]-1][i[1]-1] = 1
+            hall[i[0]-1][i[1]-1] = 1
 
     # сдвиг для входа в малый и средний залы
-    def make_enter_small_medium(self):
-        for i in range((len(self.hall[0])-1), 0, -1):
-            self.hall[0][i], self.hall[1][i] = self.hall[0][i -
-                                                            1], self.hall[1][i-1]
+    def make_enter_small_medium(self, hall):
+        for i in range((len(hall[0])-1), 0, -1):
+            hall[0][i], hall[1][i] = hall[0][i-1], hall[1][i-1]
 
-    # просмотр места, но не занятие
-    def check_look_seat(self):
+    # проверка места: занято ли оно, имееется ли вообще в зале
+    def check_seat(self):
+        i = int(self.chosen_row.text())
+        j = int(self.chosen_seat.text())
         if self.check_input():
-            self.load_matrix()
+            self.my_scene.clear()
             self.show_places()
-            i = int(self.chosen_row.text())
-            j = int(self.chosen_seat.text())
             if self.is_valid_input(i, j):
                 i = i-1
                 j = j-1
-                if (self.matrix[i][j]) == "1":
+                if (self.matrix_taken_places[i][j]) == 1:
                     # место занято
                     QMessageBox(1, "Упс...", "Место уже занято!").exec_()
+                    return 0
                 else:
-                    # место свободно
-                    # закрашиваем место жёлтым цветом
-                    x = self.read_file()
-                    for m in range(len(x)):
-                        number_seat = 0
-                        for n in range(len(x[m])):
-                            if x[m][n] == "0" or x[m][n] == "1":
-                                number_seat = number_seat+1
-                            if (number_seat-1) == j and m == i:
-                                size_sq = QtCore.QRectF(QtCore.QPointF(
-                                    n*20, m*(20+5)), QtCore.QSizeF(20, 20))
-                                self.my_scene.addRect(size_sq, Qt.QPen(
-                                    Qt.Qt.yellow), Qt.QBrush(Qt.Qt.yellow))
-                                text = self.my_scene.addText(
-                                    str(number_seat), font=QtGui.QFont("Times", 8, QtGui.QFont.Bold))
-                                text.setPos(n*20, m*(20+5))
-                                return
+                    return 1
             else:
                 # если не правильно записан номер ряда или место
-                QMessageBox(1, "Ошибка!", "Такого места нет!").exec_()
-                return
+                QMessageBox(2, "Ошибка!", "Такого места нет!").exec_()
+                return 0
 
-    # создание матрицы мест и матрицы зала
-    # def make_matrix_and_hall(self):
-
-    #    return x
-
+    # просмотр места, но не занятие
+    def look_seat(self):        
+        if self.check_seat():
+            i = int(self.chosen_row.text())-1
+            j = int(self.chosen_seat.text())-1
+            # место свободно
+            # закрашиваем место жёлтым цветом
+            x = self.hall_for_show
+            for m in range(len(x)):
+                number_seat = 0
+                for n in range(len(x[m])):
+                    if x[m][n] == "0" or x[m][n] == "1":
+                        number_seat = number_seat+1
+                    if (number_seat-1) == j and m == i:
+                        size_sq = QtCore.QRectF(QtCore.QPointF(
+                            n*25, m*(25+5)), QtCore.QSizeF(25, 25))
+                        self.my_scene.addRect(size_sq, Qt.QPen(
+                            Qt.Qt.yellow), Qt.QBrush(Qt.Qt.yellow))
+                        text = self.my_scene.addText(
+                            str(number_seat), font=QtGui.QFont("Times", 8, QtGui.QFont.Bold))
+                        text.setPos(n*25, m*(25+5))
+                        return
+            
     # перевод матрицы
     def matrix_to_text(self, text_modify):
         i = 0
@@ -440,13 +461,13 @@ class main_window(QMainWindow):
 
     # проверка есть ли такое место
     def is_valid_input(self, row, seat):
-        if len(self.matrix) >= row > 0:
-            if len(self.matrix[row-1]) >= seat > 0:
+        if len(self.matrix_taken_places) >= row > 0:
+            if len(self.matrix_taken_places[row-1]) >= seat > 0:
                 return True
         return False
 
     # занятие места
-    def check_seat(self):
+    def _take_seat(self):
         if self.check_input():
             self.load_matrix()
             i = int(self.chosen_row.text())
@@ -464,6 +485,7 @@ class main_window(QMainWindow):
                     self.matrix[i][j] = "1"
                     self.save_matrix()
                     self.show_places()
+                    
             else:
                 # если не правильно записан номер ряда или место
                 QMessageBox(1, "Ошибка!", "Такого места нет!").exec_()
@@ -486,13 +508,15 @@ class main_window(QMainWindow):
             or self.chosen_row.text() == ""
             or self.comboBox_films.currentText() == ""
             or self.comboBox_time.currentText() == ""
-                or self.comboBox_date.currentText() == ""):
+                or self.comboBox_date.currentText() == ""
+                or self.comboBox_hall.currentText() == ""
+                or not self.graph_check):
             QMessageBox(
                 2, "Ошибка!", "Введите все данные до выбора места").exec_()
             return 0
         # проверка числа ли введены в текстбокс
-        elif ((self.chosen_seat.text()).isnumeric() == False
-              or (self.chosen_row.text()).isnumeric() == False):
+        elif ((not (self.chosen_seat.text()).isnumeric())
+              or (not (self.chosen_row.text()).isnumeric())):
             QMessageBox(2, "Ошибка!", "В поля вводится только ЧИСЛА").exec_()
             return 0
         else:
