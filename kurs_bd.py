@@ -1,7 +1,4 @@
 import sys
-# import codecs # русские буквы в txt файле
-#import os
-import copy
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QMessageBox, QMainWindow, QWidget, QGraphicsScene
 from PyQt5.QtGui import QPainter, QColor, QFont, QGradient
@@ -10,8 +7,6 @@ from PyQt5 import Qt
 import pyodbc
 conn = pyodbc.connect(
     r'Driver={Microsoft Access Driver (*.mdb, *.accdb)};DBQ=C:\Users\den-b\Documents\python\kurs_3\kursach_bd_git\cinema_check\kursovik.accdb;')
-
-
 class main_window(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -32,7 +27,6 @@ class main_window(QMainWindow):
 
     # Настройки графического интерфейса
     def setupUi(self):
-        # self.setObjectName("MainWindow")
         self.setFixedSize(600, 820)
         # задаём центральный виджет
         self.centralwidget = QtWidgets.QWidget(self)
@@ -135,9 +129,6 @@ class main_window(QMainWindow):
             "Consolas", 12, QtGui.QFont.Light))
         self.chosen_row.setFont(QtGui.QFont("Consolas", 12, QtGui.QFont.Light))
 
-        # self.nameUi(MainWindow)
-        # QtCore.QMetaObject.connectSlotsByName(MainWindow)
-
         # создаём соединение с БД
         self.curs = conn.cursor()
 
@@ -161,7 +152,7 @@ class main_window(QMainWindow):
         self.comboBox_hall.activated.connect(self.make_matrix_and_hall)
 
         # кнопка занять место
-        #self.take_seat.clicked.connect(self._take_seat)
+        self.take_seat.clicked.connect(self._take_seat)
 
         # кнопка просмотреть место
         self.take_look_seat.clicked.connect(self.look_seat)
@@ -194,7 +185,6 @@ class main_window(QMainWindow):
         self.my_scene = QGraphicsScene() 
         self.graphicsView.setScene(self.my_scene)   
         # задаём размер квадратов
-        #20        
         size=25
         x=self.hall_for_show
         # рисуем рамку зала
@@ -233,6 +223,7 @@ class main_window(QMainWindow):
                                      QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if reply == QMessageBox.Yes:
             self.curs.close()
+            conn.close()
             event.accept()
         else:
             event.ignore()
@@ -338,16 +329,12 @@ class main_window(QMainWindow):
         if type_hall == "малый":            
             hall = self.get_matrix(4, 5)
             self.taken_places(tickets, hall)            
-            # копируем через deepcopy матрицу
-            #hall = copy.deepcopy(self.matrix_places)
             # вход в зал в матрице
             self.make_enter_small_medium(hall)
             hall[0][0], hall[1][0] = 2, 2
         elif type_hall=="средний":
             hall = self.get_matrix(7, 6)
             self.taken_places(tickets, hall)            
-            # копируем через deepcopy матрицу
-            #hall = copy.deepcopy(self.matrix_places)
             # вход в зал в матрице
             self.make_enter_small_medium(hall)
             hall[0][0], hall[1][0] = 2, 2
@@ -357,13 +344,13 @@ class main_window(QMainWindow):
         elif type_hall=="большой":
             hall = self.get_matrix(9, 8)
             self.taken_places(tickets, hall)            
-            # копируем через deepcopy матрицу
-            #hall = copy.deepcopy(self.matrix_places)
             # вход в зал в матрице
             hall[4][4],hall[4][5],hall[4][6],hall[4][7]=2, 2, 2, 2            
             for i in range((len(hall[8])-2), 0, -1):
                 hall[8][i] = hall[8][i-1]
-            hall[8][0], hall[8][7] = 2, 2        
+                hall[0][i]=hall[0][i-1]
+            hall[8][0], hall[8][7] = 2, 2    
+            hall[0][0], hall[0][7] = 2, 2     
         self.hall_for_show=[]
         self.matrix_taken_places=[]
         # создаём матрицу зала, которую будем использовать для рисования:hall_for_show
@@ -394,11 +381,9 @@ class main_window(QMainWindow):
 
     # проверка места: занято ли оно, имееется ли вообще в зале
     def check_seat(self):
-        i = int(self.chosen_row.text())
-        j = int(self.chosen_seat.text())
         if self.check_input():
-            self.my_scene.clear()
-            self.show_places()
+            i = int(self.chosen_row.text())
+            j = int(self.chosen_seat.text())
             if self.is_valid_input(i, j):
                 i = i-1
                 j = j-1
@@ -416,6 +401,8 @@ class main_window(QMainWindow):
     # просмотр места, но не занятие
     def look_seat(self):        
         if self.check_seat():
+            self.my_scene.clear()
+            self.show_places()
             i = int(self.chosen_row.text())-1
             j = int(self.chosen_seat.text())-1
             # место свободно
@@ -436,29 +423,6 @@ class main_window(QMainWindow):
                         text.setPos(n*25, m*(25+5))
                         return
             
-    # перевод матрицы
-    def matrix_to_text(self, text_modify):
-        i = 0
-        for id, line in enumerate(text_modify):
-            j = 0
-            line_arr = line.split(",")
-            for index, symbol in enumerate(line_arr):
-                if symbol != "_":
-                    line_arr[index] = self.matrix[i][j]
-                    j += 1
-            text_modify[id] = ",".join(line_arr)
-            i = i + 1
-        return "\n".join(text_modify)
-
-    # сохранение изменённой матрицы
-    def save_matrix(self):
-        path = "Фильмы\\" + self.comboBox_films.currentText() + "\\" + \
-            self.comboBox_date.currentText() + "\\" + self.comboBox_time.currentText()+".txt"
-        text = self.read_file()
-        file = codecs.open(path, encoding='utf-8', mode='w')
-        file.write(self.matrix_to_text(text))
-        file.close()
-
     # проверка есть ли такое место
     def is_valid_input(self, row, seat):
         if len(self.matrix_taken_places) >= row > 0:
@@ -468,39 +432,39 @@ class main_window(QMainWindow):
 
     # занятие места
     def _take_seat(self):
-        if self.check_input():
-            self.load_matrix()
+        if self.check_seat():
             i = int(self.chosen_row.text())
             j = int(self.chosen_seat.text())
-            if self.is_valid_input(i, j):
-                i = i-1
-                j = j-1
-                if (self.matrix[i][j]) == "1":
-                    # место занято
-                    QMessageBox(1, "Упс...", "Место уже занято!").exec_()
-                else:
-                    # место свободно
-                    # пишем сначала в матрицу -- потом грамотно сохраняем в файл
-                    # не нарушая структуры
-                    self.matrix[i][j] = "1"
-                    self.save_matrix()
-                    self.show_places()
-                    
-            else:
-                # если не правильно записан номер ряда или место
-                QMessageBox(1, "Ошибка!", "Такого места нет!").exec_()
-                return
-
-    # загрузка матрицы
-    def load_matrix(self):
-        path = "Фильмы\\" + self.comboBox_films.currentText() + "\\" + \
-            self.comboBox_date.currentText() + "\\" + self.comboBox_time.currentText()+".txt"
-        file = codecs.open(path, encoding='utf-8', mode='r')
-        self.matrix = []
-        for line in file.read().splitlines():
-            self.matrix.append(
-                [symbol for symbol in line.split(",") if symbol != "_"])
-        file.close()
+            # место свободно
+            # делаем запрос на добавление занятого места в БД
+            QMessageBox(1, "Успешное бронирование", f"Вы успешно забронировали место в зале: ряд {i}, место {j}").exec_()
+            query="SELECT seat.ID_seat \
+                FROM hall INNER JOIN seat ON hall.ID_hall = seat.ID_hall \
+                    WHERE (((seat.Number_row)=?) \
+                        AND ((seat.Number_seat_in_row)=?) \
+                            AND ((hall.Size_hall)=?)) \
+                        GROUP BY seat.ID_seat;"
+            numb_row=i
+            numb_seat=j
+            type_hall = self.comboBox_hall.currentText()
+            id_seat = self.do_query(query, False, (i, j, type_hall))
+            query="SELECT session.ID_session \
+                FROM hall INNER JOIN (film INNER JOIN [session] \
+                    ON film.ID_film = session.ID_film) \
+                        ON hall.ID_hall = session.ID_hall \
+                    WHERE (((film.Name_film)=?) \
+                        AND ((hall.Size_hall)=?) \
+                            AND ((session.Start_time)=?) \
+                                AND ((session.Date_session)=?)) \
+                        GROUP BY session.ID_session;"
+            film = self.comboBox_films.currentText()
+            date = self.comboBox_date.currentText()
+            time = self.comboBox_time.currentText()
+            id_session = self.do_query(query, False, (film, type_hall, time, date))
+            self.curs.execute('''INSERT INTO sold_ticket ( [ID_session], [ID_seat] ) \
+                VALUES (?, ?);''', (id_session[0], id_seat[0]))
+            conn.commit()
+            self.make_matrix_and_hall()
 
     # проверка на ввод всех данных
     def check_input(self):
@@ -521,7 +485,6 @@ class main_window(QMainWindow):
             return 0
         else:
             return 1
-
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
